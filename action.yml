@@ -18,6 +18,15 @@ inputs:
   target_url:
     description: "Target url location"
     required: false
+  owner:
+    description: "Owner of repo for deployment"
+    required: false
+  repo:
+    description: "Repo for deployment"
+    required: false
+  payload:
+    description: "Payload of deployment (JSON as string)"
+    required: false
   description:
     description: "Descriptive message about the deployment"
     required: false

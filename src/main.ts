@@ -16,17 +16,22 @@ async function run() {
     const logUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${context.sha}/checks`;
 
     const token = core.getInput("token", { required: true });
+    const owner =
+      core.getInput("owner", { required: false }) || context.repo.owner;
+    const repo =
+      core.getInput("repo", { required: false }) || context.repo.repo;
     const ref = core.getInput("ref", { required: false }) || context.ref;
     const url = core.getInput("target_url", { required: false }) || logUrl;
     const environment =
       core.getInput("environment", { required: false }) || "production";
     const description = core.getInput("description", { required: false });
+    const payload = core.getInput("payload", { required: false }) || "";
     const initialStatus =
       (core.getInput("initial_status", {
-        required: false
+        required: false,
       }) as DeploymentState) || "pending";
     const autoMergeStringInput = core.getInput("auto_merge", {
-      required: false
+      required: false,
     });
 
     const auto_merge: boolean = autoMergeStringInput === "true";
@@ -34,14 +39,15 @@ async function run() {
     const client = new github.GitHub(token, { previews: ["flash", "ant-man"] });
 
     const deployment = await client.repos.createDeployment({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
+      owner: owner,
+      repo: repo,
       ref: ref,
       required_contexts: [],
+      payload: payload,
       environment,
       transient_environment: true,
       auto_merge,
-      description
+      description,
     });
 
     await client.repos.createDeploymentStatus({
@@ -49,7 +55,7 @@ async function run() {
       deployment_id: deployment.data.id,
       state: initialStatus,
       log_url: logUrl,
-      environment_url: url
+      environment_url: url,
     });
 
     core.setOutput("deployment_id", deployment.data.id.toString());
