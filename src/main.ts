@@ -1,5 +1,7 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
+import { Octokit } from "@octokit/rest";
+import { ReposCreateDeploymentResponseData } from "@octokit/types";
 
 type DeploymentState =
   | "error"
@@ -36,8 +38,12 @@ async function run() {
 
     const auto_merge: boolean = autoMergeStringInput === "true";
 
-    const client = new github.GitHub(token, { previews: ["flash", "ant-man"] });
+    const client = new Octokit({
+      auth: token,
+      previews: ["flash", "ant-man"],
+    });
 
+    core.info("Creating deployment");
     const deployment = await client.repos.createDeployment({
       owner: owner,
       repo: repo,
@@ -50,19 +56,30 @@ async function run() {
       description,
     });
 
+    const deploymentId = (deployment.data as ReposCreateDeploymentResponseData)
+      .id;
+
+    core.info(`Deployment created with id ${deploymentId}`);
+    core.info("Creating deployment status..");
+
     await client.repos.createDeploymentStatus({
-      ...context.repo,
-      deployment_id: deployment.data.id,
+      owner: owner,
+      repo: repo,
+      deployment_id: deploymentId,
       state: initialStatus,
       log_url: logUrl,
       environment_url: url,
     });
 
-    core.setOutput("deployment_id", deployment.data.id.toString());
+    core.setOutput("deployment_id", deploymentId.toString());
   } catch (error) {
     core.error(error);
     core.setFailed(error.message);
   }
+}
+
+interface DeploymentResponse {
+  id: string;
 }
 
 run();
